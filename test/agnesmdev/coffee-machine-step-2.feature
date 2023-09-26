@@ -1,4 +1,4 @@
-Feature: Order a drink
+Feature: Order a drink and pay for it
   Scenario: Order a tea
     When the customer send the command "T:1:0" with 0.4 €
     Then the drink maker returns 1 tea with 1 sugar and a stick
