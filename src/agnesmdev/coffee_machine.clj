@@ -10,31 +10,46 @@
             [ring.adapter.jetty :refer [run-jetty]]
             ))
 
-(def drinks {"T" {:name "tea" :price 0.4}
-             "C" {:name "coffee" :price 0.6}
-             "H" {:name "chocolate" :price 0.5}
+(def drinks {"T" {:name "tea" :price 40}
+             "C" {:name "coffee" :price 60}
+             "H" {:name "chocolate" :price 50}
              "M" {}})
 
-(defn make-order [drink sugar rest]
+(defn format-int! [value type]
+  (try
+    (Integer/parseInt value)
+    (catch NumberFormatException _ (throw (NumberFormatException. (str "Unexpected " type ", expected integer, got " value))))))
+
+(defn make-order [drink sugar rest money]
   (if (nil? (:name drink))
     {:status 200 :body (str sugar ":" (str/join ":" rest))}
     (try
-      (let [sugar-int (Integer/parseInt sugar)]
-        {:status 201 :body {:drink (:name drink)
-                            :sugar sugar-int
-                            :stick (> 0 sugar-int)}})
-      (catch NumberFormatException _ {:status 400 :body (str "Unexpected sugar quantity, expected number, got " sugar)}))))
+      (let [sugar-int (format-int! sugar "sugar quantity")
+            money-int (format-int! money "money")
+            remainder (- money-int (:price drink))]
+        (println money-int)
+        (println (:price drink))
+        (println remainder)
+        (if (< remainder 0)
+          {:status 400 :body (str "Missing " (- remainder) " cents for " (:name drink))}
+          {:status 201 :body {:drink (:name drink)
+                              :sugar sugar-int
+                              :stick (> 0 sugar-int)
+                              :remainder remainder}}))
+      (catch NumberFormatException ex {:status 400 :body (ex-message ex)}))))
 
-(defn order-drink [drink-name sugar rest]
+(defn order-drink [drink-name sugar rest money]
   (let [drink (get drinks drink-name)]
     (if (nil? drink)
       {:status 400 :body (str "Unexpected drink, expected T, H, C or M, got " drink-name)}
-      (make-order drink sugar rest)
+      (make-order drink sugar rest money)
       )))
 
 (defn handle-order [request]
-  (let [[drink-name sugar & rest] (str/split (:query-string request) #":" 3)]
-    (order-drink drink-name sugar rest)))
+  (let [params (:query-params request)
+        money (get params "money")
+        [drink-name sugar & rest] (str/split (get params "order") #":" 3)]
+    (order-drink drink-name sugar rest money)))
 
 (def app
   (ring/ring-handler
