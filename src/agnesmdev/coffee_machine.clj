@@ -10,23 +10,19 @@
             [ring.adapter.jetty :refer [run-jetty]]
             ))
 
-(def drinks {"T" {:name "tea"}
-             "C" {:name "coffee"}
-             "H" {:name "chocolate"}
-             "M" {:name ""}})
+(def drinks {"T" {:name "tea" :price 0.4}
+             "C" {:name "coffee" :price 0.6}
+             "H" {:name "chocolate" :price 0.5}
+             "M" {}})
 
 (defn make-order [drink sugar rest]
-  (if (empty? (:name drink))
+  (if (nil? (:name drink))
     {:status 200 :body (str sugar ":" (str/join ":" rest))}
     (try
       (let [sugar-int (Integer/parseInt sugar)]
-        {:status 201 :body (str "1 "
-                                (:name drink)
-                                " with "
-                                (if (= 0 sugar-int) "no" sugar-int)
-                                " sugar and "
-                                (if (= 0 sugar-int) "no" "a")
-                                " stick")})
+        {:status 201 :body {:drink (:name drink)
+                            :sugar sugar-int
+                            :stick (> 0 sugar-int)}})
       (catch NumberFormatException _ {:status 400 :body (str "Unexpected sugar quantity, expected number, got " sugar)}))))
 
 (defn order-drink [drink-name sugar rest]
